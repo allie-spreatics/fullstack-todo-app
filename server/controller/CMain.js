@@ -1,4 +1,4 @@
-const { Todo } = require("../models");
+const { Todo, sequelize } = require("../models");
 // test용 api
 exports.getIndex = (req, res) => {
   res.send("response from api server [GET /api-server]");
@@ -14,7 +14,7 @@ exports.getTodos = async (req, res) => {
     res.json(todoAll);
   } catch (err) {
     console.log("server err!", err);
-    res.status(500).send("SERVER ERROR!!, 관리자에게 문의하세요");
+    res.status(500).send("SERVER ERROR!! 관리자에게 문의하세요");
   }
 };
 
@@ -28,12 +28,67 @@ exports.postTodo = async (req, res) => {
   try {
     // req.body={text:'~~~~'}
     const { text } = req.body;
+    console.log(req.body);
     await Todo.create({
       text,
     });
     res.send({ isSuccess: true });
   } catch (err) {
     console.log("server err!", err);
-    res.status(500).send("SERVER ERROR!!, 관리자에게 문의하세요");
+    res.status(500).send("SERVER ERROR!! 관리자에게 문의하세요");
+  }
+};
+
+// PATCH /api-server/todo/:todoId
+// 내용수정이 아닌 todo 상태 변경
+exports.patchDoneState = async (req, res) => {
+  try {
+    const { todoId } = req.params;
+    // console.log(req.params);
+    const [isUpdated] = await Todo.update(
+      /* 
+      sequelize import 해와야 합니다.
+      sequelize.literal: query를 날릴(?) 수 있도록 도와줌
+      */
+      { done: sequelize.literal("NOT done") }, // 현재값과 반대로 하기 위해서 실제 sql query문 사용
+      { where: { id: todoId } }
+    );
+    isUpdated
+      ? res.status(200).send({ isSuccess: true })
+      : res.status(404).send({ isSuccess: false }); //잘못된 todoId 보낼 경우
+  } catch (err) {
+    console.log("server err!", err);
+    res.status(500).send("SERVER ERROR!, 관리자에게 문의하세요");
+  }
+};
+
+// DELETE /api-server/todo/:todoId
+exports.deleteTodo = async (req, res) => {
+  try {
+    const { todoId } = req.params;
+    // console.log(todoId);
+    const isDeleted = await Todo.destroy({ where: { id: todoId } });
+    // console.log(isDeleted);
+    isDeleted
+      ? res.status(200).send({ isSuccess: true })
+      : res.status(404).send({ isSuccess: false }); //잘못된 todoId 보낼 경우
+  } catch (err) {
+    console.log("server err!", err);
+    res.status(500).send("SERVER ERROR! 관리자에게 문의하세요");
+  }
+};
+
+// [추가] 내용수정하기
+// /api-server/content
+exports.patchContent = async (req, res) => {
+  try {
+    const { id, text } = req.body;
+    const [isUpdated] = await Todo.update({ text }, { where: { id } });
+    isUpdated
+      ? res.status(200).send({ isSuccess: true })
+      : res.status(404).send({ isSuccess: false }); //잘못된 todoId 보낼 경우
+  } catch (err) {
+    console.log("server err!", err);
+    res.status(500).send("SERVER ERROR! 관리자에게 문의하세요");
   }
 };
