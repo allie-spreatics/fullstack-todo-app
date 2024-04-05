@@ -9,6 +9,10 @@ const INIT = "todo/INIT" as const;
 const CREATE = "todo/CREATE" as const;
 const DONE = "todo/DONE" as const;
 
+// [추가] todo 삭제에 대한 type
+const DELETE = "todo/DELETE" as const;
+const UPDATE = "todo/UPDATE" as const;
+
 let count = initialState.list.length;
 initialState["nextID"] = count;
 
@@ -25,11 +29,18 @@ export const done = (id: number) => ({
   type: DONE, //string
   id, //number
 });
-// interface Action {
-//   type: string;
-//   id?: number;
-//   payload?: { id: number; text: string };
-// }
+
+// [추가] todo 삭제 및 수정에 대한 action
+export const del = (id: number) => ({
+  type: DELETE,
+  id,
+});
+
+export const update = (id: number, text: string) => ({
+  type: UPDATE,
+  id,
+  text,
+});
 interface Init {
   type: typeof INIT;
   data: Todo[];
@@ -44,7 +55,20 @@ interface Done {
   id: number;
 }
 
-type Action = Create | Done | Init;
+// [추가] todo 삭제 및 글 수정에 대한 interface
+interface Delete {
+  type: typeof DELETE;
+  id: number;
+}
+
+interface Update {
+  type: typeof UPDATE;
+  id: number;
+  text: string;
+}
+
+// Action type 변경
+type Action = Create | Done | Init | Delete | Update;
 
 export function todoReducer(state = initialState, action: Action) {
   switch (action.type) {
@@ -52,8 +76,10 @@ export function todoReducer(state = initialState, action: Action) {
       return {
         ...state,
         list: action.data,
-        nextID: action.data.length === 0,
-        1: action.data[action.data.length - 1].id + 1,
+        nextID:
+          action.data.length === 0
+            ? 1
+            : action.data[action.data.length - 1].id + 1,
       };
     case CREATE:
       if (action.payload.text.trim() === "") return state;
@@ -79,6 +105,25 @@ export function todoReducer(state = initialState, action: Action) {
             return li;
           }
         }),
+      };
+
+    // [추가] TODO 삭제 및 수정 case 분기
+    case DELETE:
+      return {
+        ...state,
+        list: state.list.filter((li) => li.id !== action.id),
+      };
+    case UPDATE:
+      return {
+        ...state,
+        list: state.list.map((li) =>
+          li.id === action.id
+            ? {
+                ...li,
+                text: action.text,
+              }
+            : li
+        ),
       };
     default:
       return state;
